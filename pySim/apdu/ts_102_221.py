@@ -519,7 +519,7 @@ class SetData(ApduCommand, n='SET DATA', ins=0xDB, cla=['8X', 'CX', 'EX']):
 
 
 # TS 102 221 Section 12.1.1
-class GetResponse(ApduCommand, n='GET RESPONSE', ins=0xC0, cla=['0X', '4X', '6X']):
+class GetResponse(ApduCommand, n='GET RESPONSE', ins=0xC0, cla=['0X', '4X', '6X', '81']):
     _apdu_case = 2
 
 ApduCommands = ApduCommandSet('TS 102 221', cmds=[UiccSelect, UiccStatus, ReadBinary, UpdateBinary, ReadRecord,
