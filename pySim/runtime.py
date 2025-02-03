@@ -17,12 +17,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import logging
 from typing import Optional, Tuple
-from osmocom.utils import h2b, i2h, is_hex, Hexstr
+
 from osmocom.tlv import bertlv_parse_one
+from osmocom.utils import Hexstr, h2b, i2h, is_hex
 
 from pySim.exceptions import *
 from pySim.filesystem import *
+
 
 def lchan_nr_from_cla(cla: int) -> int:
     """Resolve the logical channel number from the CLA byte."""
@@ -63,7 +66,7 @@ class RuntimeState:
         for addon_cls in self.profile.addons:
             addon = addon_cls()
             if addon.probe(self.card):
-                print("Detected %s Add-on \"%s\"" % (self.profile, addon))
+                logging.debug("Detected %s Add-on \"%s\"" % (self.profile, addon))
                 for f in addon.files_in_mf:
                     self.mf.add_file(f)
 
@@ -97,18 +100,18 @@ class RuntimeState:
         apps_taken = []
         if aids_card:
             aids_taken = []
-            print("AIDs on card:")
+            logging.debug("AIDs on card:")
             for a in aids_card:
                 for f in apps_profile:
                     if f.aid in a:
-                        print(" %s: %s (EF.DIR)" % (f.name, a))
+                        logging.debug(" %s: %s (EF.DIR)" % (f.name, a))
                         aids_taken.append(a)
                         apps_taken.append(f)
             aids_unknown = set(aids_card) - set(aids_taken)
             for a in aids_unknown:
-                print(" unknown: %s (EF.DIR)" % a)
+                logging.debug(" unknown: %s (EF.DIR)" % a)
         else:
-            print("warning: EF.DIR seems to be empty!")
+            logging.warning("warning: EF.DIR seems to be empty!")
 
         # Some card applications may not be registered in EF.DIR, we will actively
         # probe for those applications
@@ -123,7 +126,7 @@ class RuntimeState:
                 _data, sw = self.card.select_adf_by_aid(f.aid)
                 self.selected_adf = f
                 if sw == "9000":
-                    print(" %s: %s" % (f.name, f.aid))
+                    logging.debug(" %s: %s" % (f.name, f.aid))
                     apps_taken.append(f)
             except (SwMatchError, ProtocolError):
                 pass
