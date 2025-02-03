@@ -104,6 +104,11 @@ class Tpdu:
     def cmd_data(self) -> int:
         """Return the DATA portion of the C-APDU"""
         return self.cmd[5:]
+    
+    @cmd_data.setter
+    def cmd_data(self, data: bytes):
+        """Set the DATA portion of the C-APDU"""
+        self.cmd = self.cmd[:5] + data
 
     @property
     def sw(self) -> Optional[bytes]:
