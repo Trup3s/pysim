@@ -320,8 +320,8 @@ class GetEimConfigurationData(BER_TLV_IE, tag=0xbf55, nested=[EimConfigurationDa
     pass
 
 class CardApplicationISDR(pySim.global_platform.CardApplicationSD):
-    def __init__(self):
-        super().__init__(name='ADF.ISD-R', aid=AID_ISD_R,
+    def __init__(self, aid=AID_ISD_R):
+        super().__init__(name='ADF.ISD-R', aid=aid,
                          desc='ISD-R (Issuer Security Domain Root) Application')
         self.adf.decode_select_response = self.decode_select_response
         self.adf.shell_commands += [self.AddlShellCommands()]
