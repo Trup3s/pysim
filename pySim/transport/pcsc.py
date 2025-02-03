@@ -68,6 +68,14 @@ class PcscSimLink(LinkBaseTpdu):
             self._con.disconnect()
         except:
             pass
+        
+    
+    def __enter__(self):
+        self.connect()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.disconnect()
 
     def wait_for_card(self, timeout: Optional[int] = None, newcardonly: bool = False):
         cr = CardRequest(readers=[self._reader],
