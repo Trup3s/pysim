@@ -1460,12 +1460,12 @@ def interpret_sw(sw_data: dict, sw: str):
     for class_str, swdict in sw_data.items():
         # first try direct match
         if sw in swdict:
-            return (class_str, swdict[sw])
+            return class_str, swdict[sw]
         # next try wildcard matches
         for pattern, descr in swdict.items():
             if sw_match(sw, pattern):
-                return (class_str, descr)
-    return None
+                return class_str, descr
+    return None, None
 
 
 class CardApplication:
