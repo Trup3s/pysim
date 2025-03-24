@@ -82,7 +82,7 @@ software.
 supplementary files
 ~~~~~~~~~~~~~~~~~~~
 
-The `smdpp-data/certs`` directory contains the DPtls, DPauth and DPpb as well as CI certificates
+The `smdpp-data/certs` directory contains the DPtls, DPauth and DPpb as well as CI certificates
 used; they are copied from GSMA SGP.26 v2.  You can of course replace them with custom certificates
 if you're operating eSIM with a *private root CA*.
 
@@ -92,10 +92,20 @@ The `smdpp-data/upp` directory contains the UPP (Unprotected Profile Package) us
 commandline options
 ~~~~~~~~~~~~~~~~~~~
 
-osmo-smdpp currently doesn't have any configuration file or command line options.  You just run it,
-and it will bind its plain-HTTP ES9+ interface to local TCP port 8000.
+Typically, you just run it without any arguments, and it will bind its plain-HTTP ES9+ interface to
+`localhost` TCP port 8000.
 
+osmo-smdpp currently doesn't have any configuration file.
 
+There are command line options for binding:
+
+Bind the HTTP ES9+ to a port other than 8000::
+
+  ./osmo-smdpp.py -p 8001
+
+Bind the HTTP ES9+ to a different local interface::
+
+  ./osmo-smdpp.py -H 127.0.0.1
 
 DNS setup for your LPA
 ~~~~~~~~~~~~~~~~~~~~~~
