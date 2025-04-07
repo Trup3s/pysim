@@ -564,17 +564,20 @@ def parse_command_apdu(apdu: bytes) -> int:
         data = b''
         return (2, lc, le, data)
     elif len(apdu) > 5:
-        lc = apdu[4];
+        lc = apdu[4]
+        data_start = 5
         if lc == 0:
-            lc = 256
-        data = apdu[5:lc+5]
-        if len(apdu) == 5 + lc:
+            # Extended APDU
+            lc = int.from_bytes(apdu[5:7], 'big')
+            data_start = 7
+        data = apdu[data_start:lc+5]
+        if len(apdu) == data_start + lc:
             # Case #3, Command data field present, no response data field
             le = 0
             return (3, lc, le, data)
-        elif len(apdu) == 5 + lc + 1:
+        elif len(apdu) == data_start + lc + 1:
             # Case #4, Command data field present, no response data field
-            le = apdu[5 + lc]
+            le = apdu[data_start + lc]
             if le == 0:
                 le = 256
             return (4, lc, le, data)
