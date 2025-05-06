@@ -94,7 +94,7 @@ class PcscSimLink(LinkBaseTpdu):
 
             # Make card connection and select a suitable communication protocol
             self._con.connect()
-            supported_protocols = self._con.getProtocol();
+            supported_protocols = self._con.getProtocol()
             self.disconnect()
             if (supported_protocols & CardConnection.T0_protocol):
                 protocol =  CardConnection.T0_protocol

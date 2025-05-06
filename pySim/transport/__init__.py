@@ -3,6 +3,7 @@
 """ pySim: PCSC reader transport link base
 """
 
+import logging
 import os
 import abc
 import argparse
@@ -177,7 +178,7 @@ class LinkBase(abc.ABC):
             if self.apdu_strict:
                 raise ValueError(exeption_str)
             else:
-                print('Warning: %s' % exeption_str)
+                logging.warning(exeption_str)
 
         return (data, sw)
 

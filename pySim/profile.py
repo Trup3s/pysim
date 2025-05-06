@@ -149,7 +149,7 @@ class CardProfile:
 
     @staticmethod
     def pick(scc: SimCardCommands):
-        profiles = list(all_subclasses(CardProfile))
+        profiles: list[CardProfile] = list(all_subclasses(CardProfile))
         profiles.sort(key=operator.attrgetter('ORDER'))
 
         for p in profiles:

@@ -5,6 +5,7 @@
 
 import json
 import abc
+import logging
 import string
 import datetime
 import argparse
@@ -158,9 +159,13 @@ def dec_mcc_from_plmn(plmn: Hexstr) -> int:
 
 
 def dec_mcc_from_plmn_str(plmn: Hexstr) -> str:
-    digit1 = plmn[1]  # 1st byte, LSB
-    digit2 = plmn[0]  # 1st byte, MSB
-    digit3 = plmn[3]  # 2nd byte, LSB
+    try:
+        digit1 = plmn[1]  # 1st byte, LSB
+        digit2 = plmn[0]  # 1st byte, MSB
+        digit3 = plmn[3]  # 2nd byte, LSB
+    except IndexError as e:
+        logging.error(f"Error decoding MCC from PLMN: {e}")
+        return "0"
     res = digit1 + digit2 + digit3
     return res.upper().strip("F")
 
@@ -176,9 +181,13 @@ def dec_mnc_from_plmn(plmn: Hexstr) -> int:
 
 
 def dec_mnc_from_plmn_str(plmn: Hexstr) -> str:
-    digit1 = plmn[5]  # 3rd byte, LSB
-    digit2 = plmn[4]  # 3rd byte, MSB
-    digit3 = plmn[2]  # 2nd byte, MSB
+    try:
+        digit1 = plmn[5]  # 3rd byte, LSB
+        digit2 = plmn[4]  # 3rd byte, MSB
+        digit3 = plmn[2]  # 2nd byte, MSB
+    except IndexError as e:
+        logging.error(f"Error decoding MNC from PLMN: {e}")
+        return "0"
     res = digit1 + digit2 + digit3
     return res.upper().strip("F")
 

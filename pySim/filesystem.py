@@ -458,7 +458,7 @@ class CardMF(CardDF):
         # cannot be overridden; use assignment
         kwargs['parent'] = self
         super().__init__(**kwargs)
-        self.applications = {}
+        self.applications: list[str, CardADF] = {}
 
     def __str__(self):
         return "MF(%s)" % (self.fid)

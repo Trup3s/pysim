@@ -327,6 +327,10 @@ class EF_SUCI_Calc_Info(TransparentEF):
         """conversion method to generate list of {hnet_pubkey_identifier, hnet_pubkey} dicts
         from flat [{hnet_pubkey_identifier: }, {net_pubkey: }, ...] list"""
         out = []
+        
+        if l is None:
+            return out
+        
         while len(l):
             a = l.pop(0)
             b = l.pop(0)
