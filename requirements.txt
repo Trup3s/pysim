@@ -5,7 +5,7 @@ cmd2>=1.5
 jsonpath-ng
 construct>=2.10.70
 bidict
-pyosmocom>=0.0.8
+pyosmocom>=0.0.9
 pyyaml>=5.1
 termcolor
 colorlog
@@ -14,3 +14,4 @@ cryptography
 git+https://github.com/osmocom/asn1tools
 packaging
 git+https://github.com/hologram-io/smpp.pdu
+smpp.twisted3 @ git+https://github.com/jookies/smpp.twisted

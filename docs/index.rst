@@ -41,10 +41,13 @@ pySim consists of several parts:
    shell
    trace
    legacy
+   smpp2sim
    library
+   library-esim
    osmo-smdpp
    sim-rest
    suci-keytool
+   saip-tool
 
 
 Indices and tables

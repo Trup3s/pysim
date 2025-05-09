@@ -1,5 +1,5 @@
-# Implementation of SimAlliance/TCA Interoperable Profile handling
-#
+"""Implementation of SimAlliance/TCA Interoperable Profile handling"""
+
 # (C) 2023-2024 by Harald Welte <laforge@osmocom.org>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -22,9 +22,11 @@ import os
 from typing import Tuple, List, Optional, Dict, Union
 from collections import OrderedDict
 import asn1tools
+import zipfile
+from pySim import javacard
 from osmocom.utils import b2h, h2b, Hexstr
 from osmocom.tlv import BER_TLV_IE, bertlv_parse_tag, bertlv_parse_len
-from osmocom.construct import build_construct, parse_construct, GreedyInteger
+from osmocom.construct import build_construct, parse_construct, GreedyInteger, GreedyBytes, StripHeaderAdapter
 
 from pySim import ts_102_222
 from pySim.utils import dec_imsi
@@ -43,7 +45,7 @@ asn1 = compile_asn1_subdir('saip')
 logger = logging.getLogger(__name__)
 
 class Naa:
-    """A class defining a Network Access Application (NAA)."""
+    """A class defining a Network Access Application (NAA)"""
     name = None
     # AID prefix, as used for ADF and EF.DIR
     aid = None
@@ -59,6 +61,7 @@ class Naa:
         return 'adf-' + cls.mandatory_services[0]
 
 class NaaCsim(Naa):
+    """A class representing the CSIM (CDMA) Network Access Application (NAA)"""
     name = "csim"
     aid = h2b("")
     mandatory_services = ["csim"]
@@ -66,6 +69,7 @@ class NaaCsim(Naa):
     templates = [oid.ADF_CSIM_by_default, oid.ADF_CSIMopt_not_by_default]
 
 class NaaUsim(Naa):
+    """A class representing the USIM Network Access Application (NAA)"""
     name = "usim"
     aid = h2b("a0000000871002")
     mandatory_services = ["usim"]
@@ -78,6 +82,7 @@ class NaaUsim(Naa):
     adf = ADF_USIM()
 
 class NaaIsim(Naa):
+    """A class representing the ISIM Network Access Application (NAA)"""
     name = "isim"
     aid = h2b("a0000000871004")
     mandatory_services = ["isim"]
@@ -506,7 +511,7 @@ class ProfileElement:
             # TODO: cdmaParameter
             'securityDomain': ProfileElementSD,
             'rfm': ProfileElementRFM,
-            # TODO: application
+            'application': ProfileElementApplication,
             # TODO: nonStandard
             'end': ProfileElementEnd,
             'mf': ProfileElementMF,
@@ -748,6 +753,7 @@ class ProfileElementGFM(ProfileElement):
 
 
 class ProfileElementMF(FsProfileElement):
+    """Class representing the ProfileElement for the MF (Master File)"""
     type = 'mf'
 
     def __init__(self, decoded: Optional[dict] = None, **kwargs):
@@ -761,6 +767,7 @@ class ProfileElementMF(FsProfileElement):
         # TODO: resize EF.DIR?
 
 class ProfileElementPuk(ProfileElement):
+    """Class representing the ProfileElement for a PUK (PIN Unblocking Code)"""
     type = 'pukCodes'
 
     def __init__(self, decoded: Optional[dict] = None, **kwargs):
@@ -791,6 +798,7 @@ class ProfileElementPuk(ProfileElement):
 
 
 class ProfileElementPin(ProfileElement):
+    """Class representing the ProfileElement for a PIN (Personal Identification Number)"""
     type = 'pinCodes'
 
     def __init__(self, decoded: Optional[dict] = None, **kwargs):
@@ -827,6 +835,7 @@ class ProfileElementPin(ProfileElement):
 
 
 class ProfileElementTelecom(FsProfileElement):
+    """Class representing the ProfileElement for DF.TELECOM"""
     type = 'telecom'
 
     def __init__(self, decoded: Optional[dict] = None, **kwargs):
@@ -839,6 +848,7 @@ class ProfileElementTelecom(FsProfileElement):
             self.decoded[fname] = []
 
 class ProfileElementCD(FsProfileElement):
+    """Class representing the ProfileElement for DF.CD"""
     type = 'cd'
 
     def __init__(self, decoded: Optional[dict] = None, **kwargs):
@@ -851,6 +861,7 @@ class ProfileElementCD(FsProfileElement):
             self.decoded[fname] = []
 
 class ProfileElementPhonebook(FsProfileElement):
+    """Class representing the ProfileElement for DF.PHONEBOOK"""
     type = 'phonebook'
 
     def __init__(self, decoded: Optional[dict] = None, **kwargs):
@@ -863,6 +874,7 @@ class ProfileElementPhonebook(FsProfileElement):
             self.decoded[fname] = []
 
 class ProfileElementGsmAccess(FsProfileElement):
+    """Class representing the ProfileElement for ADF.USIM/DF.GSM-ACCESS"""
     type = 'gsm-access'
 
     def __init__(self, decoded: Optional[dict] = None, **kwargs):
@@ -875,6 +887,7 @@ class ProfileElementGsmAccess(FsProfileElement):
             self.decoded[fname] = []
 
 class ProfileElementDf5GS(FsProfileElement):
+    """Class representing the ProfileElement for ADF.USIM/DF.5GS"""
     type = 'df-5gs'
 
     def __init__(self, decoded: Optional[dict] = None, **kwargs):
@@ -887,6 +900,7 @@ class ProfileElementDf5GS(FsProfileElement):
             self.decoded[fname] = []
 
 class ProfileElementEAP(FsProfileElement):
+    """Class representing the ProfileElement for DF.EAP"""
     type = 'eap'
 
     def __init__(self, decoded: Optional[dict] = None, **kwargs):
@@ -899,6 +913,7 @@ class ProfileElementEAP(FsProfileElement):
             self.decoded[fname] = []
 
 class ProfileElementDfSAIP(FsProfileElement):
+    """Class representing the ProfileElement for DF.SAIP"""
     type = 'df-saip'
 
     def __init__(self, decoded: Optional[dict] = None, **kwargs):
@@ -911,6 +926,7 @@ class ProfileElementDfSAIP(FsProfileElement):
             self.decoded[fname] = []
 
 class ProfileElementDfSNPN(FsProfileElement):
+    """Class representing the ProfileElement for DF.SNPN"""
     type = 'df-snpn'
 
     def __init__(self, decoded: Optional[dict] = None, **kwargs):
@@ -923,6 +939,7 @@ class ProfileElementDfSNPN(FsProfileElement):
             self.decoded[fname] = []
 
 class ProfileElementDf5GProSe(FsProfileElement):
+    """Class representing the ProfileElement for DF.5GProSe"""
     type = 'df-5gprose'
 
     def __init__(self, decoded: Optional[dict] = None, **kwargs):
@@ -1087,7 +1104,136 @@ class ProfileElementSSD(ProfileElementSD):
                 'uiccToolkitApplicationSpecificParametersField': h2b('01000001000000020112036C756500'),
             }
 
+class ProfileElementApplication(ProfileElement):
+    """Class representing an application ProfileElement."""
+    type = 'application'
+
+    def __init__(self, decoded: Optional[dict] = None, **kwargs):
+        super().__init__(decoded, **kwargs)
+
+    @classmethod
+    def from_file(cls,
+                  filename:str,
+                  aid:Hexstr,
+                  sd_aid:Hexstr = None,
+                  non_volatile_code_limit:int = None,
+                  volatile_data_limit:int = None,
+                  non_volatile_data_limit:int = None,
+                  hash_value:Hexstr = None) -> 'ProfileElementApplication':
+        """Fill contents of application ProfileElement from a .cap file."""
+
+        inst = cls()
+        Construct_data_limit = StripHeaderAdapter(GreedyBytes, 4, steps = [2,4])
+
+        if filename.lower().endswith('.cap'):
+            cap = javacard.CapFile(filename)
+            load_block_object = cap.get_loadfile()
+        elif filename.lower().endswith('.ijc'):
+            fd = open(filename, 'rb')
+            load_block_object = fd.read()
+        else:
+            raise ValueError('Invalid file type, file must either .cap or .ijc')
+
+        # Mandatory
+        inst.decoded['loadBlock'] = {
+            'loadPackageAID': h2b(aid),
+            'loadBlockObject': load_block_object
+        }
+
+        # Optional
+        if sd_aid:
+            inst.decoded['loadBlock']['securityDomainAID'] = h2b(sd_aid)
+        if non_volatile_code_limit:
+            inst.decoded['loadBlock']['nonVolatileCodeLimitC6'] = Construct_data_limit.build(non_volatile_code_limit)
+        if volatile_data_limit:
+            inst.decoded['loadBlock']['volatileDataLimitC7'] = Construct_data_limit.build(volatile_data_limit)
+        if non_volatile_data_limit:
+            inst.decoded['loadBlock']['nonVolatileDataLimitC8'] = Construct_data_limit.build(non_volatile_data_limit)
+        if hash_value:
+            inst.decoded['loadBlock']['hashValue'] = h2b(hash_value)
+
+        return inst
+
+    def to_file(self, filename:str):
+        """Write loadBlockObject contents of application ProfileElement to a .cap or .ijc file."""
+
+        load_package_aid = b2h(self.decoded['loadBlock']['loadPackageAID'])
+        load_block_object = self.decoded['loadBlock']['loadBlockObject']
+
+        if filename.lower().endswith('.cap'):
+            with io.BytesIO(load_block_object) as f, zipfile.ZipFile(filename, 'w') as z:
+                javacard.ijc_to_cap(f, z, load_package_aid)
+        elif filename.lower().endswith('.ijc'):
+            with open(filename, 'wb') as f:
+                f.write(load_block_object)
+        else:
+            raise ValueError('Invalid file type, file must either .cap or .ijc')
+
+    def add_instance(self,
+                     aid:Hexstr,
+                     class_aid:Hexstr,
+                     inst_aid:Hexstr,
+                     app_privileges:Hexstr,
+                     app_spec_pars:Hexstr,
+                     uicc_toolkit_app_spec_pars:Hexstr = None,
+                     uicc_access_app_spec_pars:Hexstr = None,
+                     uicc_adm_access_app_spec_pars:Hexstr = None,
+                     volatile_memory_quota:Hexstr = None,
+                     non_volatile_memory_quota:Hexstr = None,
+                     process_data:list[Hexstr] = None):
+        """Create a new instance and add it to the instanceList"""
+
+        # Mandatory
+        inst = {'applicationLoadPackageAID': h2b(aid),
+                'classAID': h2b(class_aid),
+                'instanceAID': h2b(inst_aid),
+                'applicationPrivileges': h2b(app_privileges),
+                'applicationSpecificParametersC9': h2b(app_spec_pars)}
+
+        # Optional
+        if uicc_toolkit_app_spec_pars or uicc_access_app_spec_pars or uicc_adm_access_app_spec_pars:
+            inst['applicationParameters'] = {}
+            if uicc_toolkit_app_spec_pars:
+                inst['applicationParameters']['uiccToolkitApplicationSpecificParametersField'] = \
+                    h2b(uicc_toolkit_app_spec_pars)
+            if uicc_access_app_spec_pars:
+                inst['applicationParameters']['uiccAccessApplicationSpecificParametersField'] = \
+                    h2b(uicc_access_app_spec_pars)
+            if uicc_adm_access_app_spec_pars:
+                inst['applicationParameters']['uiccAdministrativeAccessApplicationSpecificParametersField'] = \
+                    h2b(uicc_adm_access_app_spec_pars)
+        if volatile_memory_quota is not None or non_volatile_memory_quota is not None:
+            inst['systemSpecificParameters'] = {}
+            Construct_data_limit = StripHeaderAdapter(GreedyBytes, 4, steps = [2,4])
+            if volatile_memory_quota is not None:
+                inst['systemSpecificParameters']['volatileMemoryQuotaC7'] = \
+                    Construct_data_limit.build(volatile_memory_quota)
+            if non_volatile_memory_quota is not None:
+                inst['systemSpecificParameters']['nonVolatileMemoryQuotaC8'] = \
+                    Construct_data_limit.build(non_volatile_memory_quota)
+        if len(process_data) > 0:
+            inst['processData'] = []
+        for proc in process_data:
+            inst['processData'].append(h2b(proc))
+
+        # Append created instance to instance list
+        if 'instanceList' not in self.decoded.keys():
+            self.decoded['instanceList'] = []
+        self.decoded['instanceList'].append(inst)
+
+    def remove_instance(self, inst_aid:Hexstr):
+        """Remove an instance from the instanceList"""
+        inst_list = self.decoded.get('instanceList', [])
+        for inst in enumerate(inst_list):
+            if b2h(inst[1].get('instanceAID', None)) == inst_aid:
+                inst_list.pop(inst[0])
+                return
+        raise ValueError("instance AID: '%s' not present in instanceList, cannot remove instance" % inst[1])
+
+
+
 class ProfileElementRFM(ProfileElement):
+    """Class representing the ProfileElement for RFM (Remote File Management)."""
     type = 'rfm'
 
     def __init__(self, decoded: Optional[dict] = None,
@@ -1113,6 +1259,7 @@ class ProfileElementRFM(ProfileElement):
                 }
 
 class ProfileElementUSIM(FsProfileElement):
+    """Class representing the ProfileElement for ADF.USIM Mandatory Files"""
     type = 'usim'
 
     def __init__(self, decoded: Optional[dict] = None, **kwargs):
@@ -1135,6 +1282,7 @@ class ProfileElementUSIM(FsProfileElement):
         return dec_imsi(b2h(f.body))
 
 class ProfileElementOptUSIM(FsProfileElement):
+    """Class representing the ProfileElement for ADF.USIM Optional Files"""
     type = 'opt-usim'
 
     def __init__(self, decoded: Optional[dict] = None, **kwargs):
@@ -1145,6 +1293,7 @@ class ProfileElementOptUSIM(FsProfileElement):
         self.decoded['templateID'] = str(oid.ADF_USIMopt_not_by_default_v2)
 
 class ProfileElementISIM(FsProfileElement):
+    """Class representing the ProfileElement for ADF.ISIM Mandatory Files"""
     type = 'isim'
 
     def __init__(self, decoded: Optional[dict] = None, **kwargs):
@@ -1161,6 +1310,7 @@ class ProfileElementISIM(FsProfileElement):
         return b2h(self.decoded['adf-isim'][0][1]['dfName'])
 
 class ProfileElementOptISIM(FsProfileElement):
+    """Class representing the ProfileElement for ADF.ISIM Optional Files"""
     type = 'opt-isim'
 
     def __init__(self, decoded: Optional[dict] = None, **kwargs):
@@ -1172,6 +1322,7 @@ class ProfileElementOptISIM(FsProfileElement):
 
 
 class ProfileElementAKA(ProfileElement):
+    """Class representing the ProfileElement for Authentication and Key Agreement (AKA)."""
     type = 'akaParameter'
     # TODO: RES size for USIM test algorithm can be set to 32, 64 or 128 bits. This value was
     # previously limited to 128 bits.  Recommendation: Avoid using RES size 32 or 64 in Profiles
@@ -1251,6 +1402,7 @@ class ProfileElementAKA(ProfileElement):
         })
 
 class ProfileElementHeader(ProfileElement):
+    """Class representing the ProfileElement for the Header of the PE-Sequence."""
     type = 'header'
     def __init__(self, decoded: Optional[dict] = None,
                  ver_major: Optional[int] = 2, ver_minor: Optional[int] = 3,
@@ -1281,7 +1433,17 @@ class ProfileElementHeader(ProfileElement):
         if profile_type:
             self.decoded['profileType'] = profile_type
 
+    def mandatory_service_add(self, service_name):
+        self.decoded['eUICC-Mandatory-services'][service_name] = None
+
+    def mandatory_service_remove(self, service_name):
+        if service_name in self.decoded['eUICC-Mandatory-services'].keys():
+            del self.decoded['eUICC-Mandatory-services'][service_name]
+        else:
+            raise ValueError("service not in eUICC-Mandatory-services list, cannot remove")
+
 class ProfileElementEnd(ProfileElement):
+    """Class representing the ProfileElement for the End of the PE-Sequence."""
     type = 'end'
     def __init__(self, decoded: Optional[dict] = None, **kwargs):
         super().__init__(decoded, **kwargs)

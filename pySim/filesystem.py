@@ -301,7 +301,7 @@ class CardFile:
 
     @staticmethod
     def export(as_json: bool, lchan):
-        """
+        r"""
         Export file contents in the form of commandline script. This method is meant to be overloaded by a subclass in
         case any exportable contents are present. The generated script may contain multiple command lines separated by
         line breaks ("\n"), where the last commandline shall have no line break at the end
@@ -661,7 +661,7 @@ class TransparentEF(CardEF):
                 filename = '%s/file' % dirname
                 # write existing data as JSON to file
                 with open(filename, 'w') as text_file:
-                    json.dump(orig_json, text_file, indent=4)
+                    json.dump(orig_json, text_file, indent=4, cls=JsonEncoder)
                 # run a text editor
                 self._cmd.run_editor(filename)
                 with open(filename, 'r') as text_file:
@@ -963,7 +963,7 @@ class LinFixedEF(CardEF):
                 filename = '%s/file' % dirname
                 # write existing data as JSON to file
                 with open(filename, 'w') as text_file:
-                    json.dump(orig_json, text_file, indent=4)
+                    json.dump(orig_json, text_file, indent=4, cls=JsonEncoder)
                 # run a text editor
                 self._cmd.run_editor(filename)
                 with open(filename, 'r') as text_file:

@@ -20,10 +20,10 @@
 import typing
 import abc
 from bidict import bidict
-from construct import Int8ub, Byte, Bytes, Bit, Flag, BitsInteger
+from construct import Int8ub, Byte, Bit, Flag, BitsInteger
 from construct import Struct, Enum, Tell, BitStruct, this, Padding
-from construct import Prefixed, GreedyRange, GreedyBytes
-from osmocom.construct import HexAdapter, BcdAdapter, TonNpi
+from construct import Prefixed, GreedyRange
+from osmocom.construct import HexAdapter, BcdAdapter, TonNpi, Bytes, GreedyBytes
 from osmocom.utils import Hexstr, h2b, b2h
 
 from smpp.pdu import pdu_types, operations
@@ -252,6 +252,49 @@ class SMS_DELIVER(SMS_TPDU):
             'tp_ud': tp_ud,
             }
         return cls(**d)
+
+    @classmethod
+    def from_submit(cls, submit: 'SMS_SUBMIT') -> 'SMS_DELIVER':
+        """Construct a SMS_DELIVER instance from a SMS_SUBMIT instance."""
+        d = {
+            # common fields (SMS_TPDU base class) which exist in submit, so we can copy them
+            'tp_mti': submit.tp_mti,
+            'tp_rp': submit.tp_rp,
+            'tp_udhi': submit.tp_udhi,
+            'tp_pid': submit.tp_pid,
+            'tp_dcs': submit.tp_dcs,
+            'tp_udl': submit.tp_udl,
+            'tp_ud': submit.tp_ud,
+            # SMS_DELIVER specific fields
+            'tp_lp': False,
+            'tp_mms': False,
+            'tp_oa': None,
+            'tp_scts': h2b('22705200000000'), # FIXME
+            'tp_sri': False,
+            }
+        return cls(**d)
+
+    def to_smpp(self) -> pdu_types.PDU:
+        """Translate a SMS_DELIVER instance to a smpp.pdu.operations.DeliverSM instance."""
+        # we only deal with binary SMS here:
+        if self.tp_dcs != 0xF6:
+            raise ValueError('Unsupported DCS: We only support DCS=0xF6 for now')
+        dcs = pdu_types.DataCoding(pdu_types.DataCodingScheme.DEFAULT,
+                                   pdu_types.DataCodingDefault.OCTET_UNSPECIFIED)
+        esm_class = pdu_types.EsmClass(pdu_types.EsmClassMode.DEFAULT, pdu_types.EsmClassType.DEFAULT,
+                                       gsmFeatures=[pdu_types.EsmClassGsmFeatures.UDHI_INDICATOR_SET])
+        if self.tp_oa:
+            oa_digits, oa_ton, oa_npi = self.tp_oa.to_smpp()
+        else:
+            oa_digits, oa_ton, oa_npi = None, None, None
+        return operations.DeliverSM(source_addr=oa_digits,
+                                    source_addr_ton=oa_ton,
+                                    source_addr_npi=oa_npi,
+                                    #destination_addr=ESME_MSISDN,
+                                    esm_class=esm_class,
+                                    protocol_id=self.tp_pid,
+                                    data_coding=dcs,
+                                    short_message=self.tp_ud)
 
 
 

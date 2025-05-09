@@ -26,7 +26,7 @@ Support for the Secure Element Access Control, specifically the ARA-M inside an 
 #
 
 
-from construct import GreedyBytes, GreedyString, Struct, Enum, Int8ub, Int16ub
+from construct import GreedyString, Struct, Enum, Int8ub, Int16ub
 from construct import Optional as COptional
 from osmocom.construct import *
 from osmocom.tlv import *
@@ -388,6 +388,11 @@ class ADF_ARAM(CardADF):
             res_do = ADF_ARAM.store_data(self._cmd.lchan.scc, deldo)
             if res_do:
                 self._cmd.poutput_json(res_do.to_dict())
+
+        def do_aram_lock(self, opts):
+            """Lock STORE DATA command to prevent unauthorized changes
+            (Proprietary feature that is specific to sysmocom's fork of Bertrand Martel’s ARA-M implementation.)"""
+            self._cmd.lchan.scc.send_apdu_checksw('80e2900001A1', '9000')
 
 
 # SEAC v1.1 Section 4.1.2.2 + 5.1.2.2

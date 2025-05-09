@@ -25,7 +25,7 @@ setup(
         "jsonpath-ng",
         "construct >= 2.10.70",
         "bidict",
-        "pyosmocom >= 0.0.8",
+        "pyosmocom >= 0.0.9",
         "pyyaml >= 5.1",
         "termcolor",
         "colorlog",
@@ -33,12 +33,14 @@ setup(
         "packaging",
         "smpp.pdu @ git+https://github.com/hologram-io/smpp.pdu",
         "asn1tools",
+        "smpp.twisted3 @ git+https://github.com/jookies/smpp.twisted",
     ],
     scripts=[
         'pySim-prog.py',
         'pySim-read.py',
         'pySim-shell.py',
         'pySim-trace.py',
+        'pySim-smpp2sim.py',
     ],
     package_data={
         'pySim.esim':
